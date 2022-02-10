@@ -1,6 +1,11 @@
 package io.cloudtrust.keycloak.services.resource.api.admin;
 
-import io.cloudtrust.keycloak.services.resource.api.ApiConfig;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
@@ -12,20 +17,11 @@ import org.keycloak.services.resources.admin.AdminEventBuilder;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-
 public class RealmsAdminResource extends org.keycloak.services.resources.admin.RealmsAdminResource {
-    private ApiConfig apiConfig;
-
-    public RealmsAdminResource(AdminAuth auth, TokenManager tokenManager, KeycloakSession session, ApiConfig apiConfig) {
+    public RealmsAdminResource(AdminAuth auth, TokenManager tokenManager, KeycloakSession session) {
         super(auth, tokenManager);
         this.session = session;
         this.clientConnection = session.getContext().getConnection();
-        this.apiConfig = apiConfig;
     }
 
     /**

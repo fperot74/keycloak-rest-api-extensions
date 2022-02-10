@@ -59,7 +59,7 @@ public class AdminRoot extends org.keycloak.services.resources.admin.AdminRoot {
         logger.debug("authenticated admin access for: " + auth.getUser().getUsername());
         Cors.add(request).allowedOrigins(auth.getToken()).allowedMethods("GET", "PUT", "POST", "DELETE").exposedHeaders("Location").auth().build(response);
 
-        org.keycloak.services.resources.admin.RealmsAdminResource adminResource = new RealmsAdminResource(auth, tokenManager, session, apiConfig);
+        org.keycloak.services.resources.admin.RealmsAdminResource adminResource = new RealmsAdminResource(auth, tokenManager, session);
         ResteasyProviderFactory.getInstance().injectProperties(adminResource);
         return adminResource;
     }
@@ -89,7 +89,8 @@ public class AdminRoot extends org.keycloak.services.resources.admin.AdminRoot {
 
         long limit = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(apiConfig.getTermsOfUseAcceptanceDelayMillis());
         EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
-        List<Object[]> result = em.createNativeQuery(
+        @SuppressWarnings("unchecked")
+		List<Object[]> result = em.createNativeQuery(
                         "select u.ID, u.USERNAME, r.ID REALM_ID, r.NAME REALM_NAME " +
                                 "from USER_ENTITY u " +
                                 "inner join USER_REQUIRED_ACTION ura ON ura.USER_ID=u.ID AND ura.REQUIRED_ACTION=:requiredAction " +

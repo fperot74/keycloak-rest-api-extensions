@@ -183,6 +183,7 @@ public class CtUserResource extends UserResource {
                     .setAttribute(Constants.TEMPLATE_ATTR_REQUIRED_ACTIONS, token.getRequiredActions())
                     .setRealm(realm)
                     .setUser(user)
+                    //.send()
                     .sendExecuteActions(link, TimeUnit.SECONDS.toMinutes(lifespan));
 
             adminEvent.operation(OperationType.ACTION).resourcePath(session.getContext().getUri()).success();
