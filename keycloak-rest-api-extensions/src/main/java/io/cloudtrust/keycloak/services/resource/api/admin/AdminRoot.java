@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 public class AdminRoot extends org.keycloak.services.resources.admin.AdminRoot {
 
     protected static final Logger logger = Logger.getLogger(AdminRoot.class);
+    private static final String MSG_AUTH_ADMIN_ACCESS = "authenticated admin access for: {}";
 
     private final ApiConfig apiConfig;
 
@@ -62,7 +63,7 @@ public class AdminRoot extends org.keycloak.services.resources.admin.AdminRoot {
             throw new NotAuthorizedException("Can't get AdminAuth");
         }
 
-        logger.debug("authenticated admin access for: " + auth.getUser().getUsername());
+        logger.debugf(MSG_AUTH_ADMIN_ACCESS, auth.getUser().getUsername());
         Cors.add(request).allowedOrigins(auth.getToken()).allowedMethods("GET", "PUT", "POST", "DELETE").exposedHeaders("Location").auth().build(response);
 
         org.keycloak.services.resources.admin.RealmsAdminResource adminResource = new RealmsAdminResource(auth, tokenManager, session);
@@ -85,7 +86,7 @@ public class AdminRoot extends org.keycloak.services.resources.admin.AdminRoot {
             throw new NotAuthorizedException("Can't get AdminAuth");
         }
 
-        logger.debug("authenticated admin access for: " + auth.getUser().getUsername());
+        logger.debugf(MSG_AUTH_ADMIN_ACCESS, auth.getUser().getUsername());
         Cors.add(request).allowedOrigins(auth.getToken()).allowedMethods("GET", "PUT", "POST", "DELETE").exposedHeaders("Location").auth().build(response);
 
         // Check rights
@@ -132,7 +133,7 @@ public class AdminRoot extends org.keycloak.services.resources.admin.AdminRoot {
             throw new NotAuthorizedException("unauthorized");
         }
 
-        logger.debug("authenticated admin access for: " + auth.getUser().getUsername());
+        logger.debugf(MSG_AUTH_ADMIN_ACCESS, auth.getUser().getUsername());
         Cors.add(request).allowedOrigins(auth.getToken()).allowedMethods("GET", "PUT", "POST", "DELETE").exposedHeaders("Location").auth().build(response);
 
         // Check rights
