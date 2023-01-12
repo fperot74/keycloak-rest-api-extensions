@@ -1,10 +1,12 @@
 package io.cloudtrust.keycloak.restapi.services.resource.api.admin;
 
+import io.cloudtrust.exception.CloudtrustException;
 import io.cloudtrust.keycloak.ExecuteActionsEmailHelper;
 import io.cloudtrust.keycloak.restapi.delegate.CtUserModelDelegate;
 import io.cloudtrust.keycloak.restapi.email.EmailSender;
 import io.cloudtrust.keycloak.restapi.email.model.EmailModel;
 import io.cloudtrust.keycloak.restapi.email.model.RealmWithOverridenEmailTheme;
+import io.cloudtrust.keycloak.restapi.tools.EmailHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.logging.Logger;
 import org.keycloak.email.EmailException;
@@ -58,7 +60,7 @@ public class CtUserResource extends UserResource {
     @Path("send-email")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response sendMail(EmailModel emailModel) {
+    public Response sendMail(EmailModel emailModel, @QueryParam("white_labelled_base_url") String whiteLabelledBaseURL) {
         auth.users().requireManage();
 
         if (emailModel.getRecipient() == null) {
@@ -66,6 +68,13 @@ public class CtUserResource extends UserResource {
         }
         if (StringUtils.isBlank(emailModel.getRecipient())) {
             return ErrorResponse.error("User email missing", Response.Status.BAD_REQUEST);
+        }
+        if (whiteLabelledBaseURL != null) {
+            try {
+                whiteLabelledBaseURL = EmailHelper.validateBaseURL(whiteLabelledBaseURL);
+            } catch (CloudtrustException ce) {
+                return ErrorResponse.error("Invalid white_labelled_base_url value", Response.Status.BAD_REQUEST);
+            }
         }
 
         if (!user.isEnabled()) {
@@ -79,8 +88,7 @@ public class CtUserResource extends UserResource {
 
         Locale locale = session.getContext().resolveLocale(user);
 
-        UriBuilder builder = LoginActionsService.loginActionsBaseUrl(session.getContext().getUri());
-        String link = builder.build(session.getContext().getRealm().getName()).toString() + "/";
+        String link = EmailHelper.evaluateLink(session, whiteLabelledBaseURL);
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("user", new ProfileBean(user));
         attributes.put("realmName", realm.getDisplayName());

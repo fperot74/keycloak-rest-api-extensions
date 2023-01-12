@@ -1,8 +1,10 @@
 package io.cloudtrust.keycloak.restapi.services.resource.api.account;
 
+import io.cloudtrust.exception.CloudtrustException;
 import io.cloudtrust.keycloak.ExecuteActionsEmailHelper;
 import io.cloudtrust.keycloak.restapi.delegate.CtUserModelDelegate;
 import io.cloudtrust.keycloak.restapi.email.model.UserWithOverridenEmail;
+import io.cloudtrust.keycloak.restapi.tools.EmailHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.cache.NoCache;
@@ -28,7 +30,6 @@ import org.keycloak.services.ErrorResponse;
 import org.keycloak.services.ServicesLogger;
 import org.keycloak.services.managers.Auth;
 import org.keycloak.services.resources.Cors;
-import org.keycloak.services.resources.LoginActionsService;
 import org.keycloak.services.resources.account.AccountRestService;
 
 import javax.ws.rs.Consumes;
@@ -44,7 +45,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,12 +172,21 @@ public class FixedAccountRestService extends AccountRestService {
     @Path("send-email")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response sendMail(@QueryParam("subject") String subjectFormatKey, @QueryParam("template") String template, @QueryParam("recipient") String recipient, Map<String, String> parameters) {
+    public Response sendMail(@QueryParam("subject") String subjectFormatKey, @QueryParam("template") String template,
+                             @QueryParam("recipient") String recipient, @QueryParam("white_labelled_base_url") String whiteLabelledBaseURL,
+                             Map<String, String> parameters) {
         if (StringUtils.isBlank(template)) {
             return ErrorResponse.error("Template email missing", Status.BAD_REQUEST);
         }
         if (StringUtils.isBlank(subjectFormatKey)) {
             return ErrorResponse.error("Subject missing", Status.BAD_REQUEST);
+        }
+        if (whiteLabelledBaseURL != null) {
+            try {
+                whiteLabelledBaseURL = EmailHelper.validateBaseURL(whiteLabelledBaseURL);
+            } catch (CloudtrustException ce) {
+                return ErrorResponse.error("Invalid white_labelled_base_url value", Status.BAD_REQUEST);
+            }
         }
         UserWithOverridenEmail userWithEmail = new UserWithOverridenEmail(user, recipient);
         if (StringUtils.isBlank(userWithEmail.getEmail())) {
@@ -189,8 +198,7 @@ public class FixedAccountRestService extends AccountRestService {
                     ErrorResponse.error("User is disabled", Status.BAD_REQUEST));
         }
 
-        UriBuilder builder = LoginActionsService.loginActionsBaseUrl(session.getContext().getUri()).path(getClass(), "sendMail");
-        String link = builder.build(realm.getName()).toString();
+        String link = EmailHelper.evaluateLink(session, b -> b.path(getClass(), "sendMail"), realm.getName(), whiteLabelledBaseURL);
 
         KeycloakContext context = session.getContext();
         EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class)

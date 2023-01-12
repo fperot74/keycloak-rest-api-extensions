@@ -1,23 +1,24 @@
-package io.cloudtrust.keycloak.services.resource.api.admin;
+package io.cloudtrust.keycloak.restapi.services.resource.api.admin;
 
-import io.cloudtrust.keycloak.email.EmailSender;
-import io.cloudtrust.keycloak.email.model.EmailModel;
+import io.cloudtrust.exception.CloudtrustException;
+import io.cloudtrust.keycloak.restapi.email.EmailSender;
+import io.cloudtrust.keycloak.restapi.email.model.EmailModel;
+import io.cloudtrust.keycloak.restapi.tools.EmailHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.services.ErrorResponse;
-import org.keycloak.services.resources.LoginActionsService;
 import org.keycloak.services.resources.admin.AdminEventBuilder;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -50,16 +51,22 @@ public class RealmAdminResource extends org.keycloak.services.resources.admin.Re
     @Path("send-email")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response sendMail(EmailModel emailModel) {
+    public Response sendMail(EmailModel emailModel, @QueryParam("white_labelled_base_url") String whiteLabelledBaseURL) {
         auth.users().requireManage();
 
         if (StringUtils.isBlank(emailModel.getRecipient())) {
             return ErrorResponse.error("Recipient email missing", Response.Status.BAD_REQUEST);
         }
+        if (whiteLabelledBaseURL != null) {
+            try {
+                whiteLabelledBaseURL = EmailHelper.validateBaseURL(whiteLabelledBaseURL);
+            } catch (CloudtrustException ce) {
+                return ErrorResponse.error("Invalid white_labelled_base_url value", Response.Status.BAD_REQUEST);
+            }
+        }
 
         Locale locale = realm.getDefaultLocale() != null ? Locale.forLanguageTag(realm.getDefaultLocale()) : Locale.ENGLISH;
-        UriBuilder builder = LoginActionsService.loginActionsBaseUrl(session.getContext().getUri());
-        String link = builder.build(session.getContext().getRealm().getName()).toString() + "/";
+        String link = EmailHelper.evaluateLink(session, whiteLabelledBaseURL);
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("link", link);
         if (emailModel.getTheming() != null && emailModel.getTheming().getTemplateParameters() != null) {
